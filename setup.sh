@@ -3,6 +3,8 @@ set -e
 
 CONF_SRC="$(cd "$(dirname "$0")/nginx/conf.d" && pwd)"
 CONF_DST="/etc/nginx/conf.d"
+HTML_SRC="$(cd "$(dirname "$0")/nginx/html" && pwd)"
+HTML_DST="/etc/nginx/html"
 
 # nginx 설치 (없을 경우)
 if ! command -v nginx &>/dev/null; then
@@ -22,6 +24,8 @@ fi
 # conf 동기화
 echo "[2/4] conf 동기화: $CONF_SRC → $CONF_DST"
 sudo rsync -av --delete "$CONF_SRC/" "$CONF_DST/"
+sudo mkdir -p "$HTML_DST"
+sudo rsync -av --delete "$HTML_SRC/" "$HTML_DST/"
 
 # 설정 검증
 echo "[3/4] nginx 설정 검증..."
