@@ -22,10 +22,16 @@ else
 fi
 
 # conf 동기화
-echo "[2/4] conf 동기화: $CONF_SRC → $CONF_DST"
-sudo rsync -av --delete "$CONF_SRC/" "$CONF_DST/"
-sudo mkdir -p "$HTML_DST"
-sudo rsync -av --delete "$HTML_SRC/" "$HTML_DST/"
+# SSL 인증서가 이미 발급된 경우 certbot이 수정한 conf를 덮어쓰지 않음
+if [ -d "/etc/letsencrypt/live" ] && sudo ls /etc/letsencrypt/live/ 2>/dev/null | grep -q .; then
+    echo "[2/4] SSL 인증서 감지됨 — conf 동기화 건너뜀 (ssl_setup.sh가 관리)"
+    echo "      nginx conf 변경이 필요하면 /etc/nginx/conf.d/ 를 직접 수정하세요."
+else
+    echo "[2/4] conf 동기화: $CONF_SRC → $CONF_DST"
+    sudo rsync -av --delete "$CONF_SRC/" "$CONF_DST/"
+    sudo mkdir -p "$HTML_DST"
+    sudo rsync -av --delete "$HTML_SRC/" "$HTML_DST/"
+fi
 
 # 설정 검증
 echo "[3/4] nginx 설정 검증..."
