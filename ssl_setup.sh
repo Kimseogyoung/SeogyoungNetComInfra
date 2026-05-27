@@ -57,14 +57,33 @@ echo "[2/4] 인증서 발급 중..."
 
 PRIMARY_DOMAIN="${DOMAINS[0]}"
 
-if sudo certbot certificates 2>/dev/null | grep -q "$PRIMARY_DOMAIN"; then
-    echo "  인증서 이미 존재 — 건너뜀"
-else
-    DOMAIN_ARGS=""
-    for d in "${DOMAINS[@]}"; do
-        DOMAIN_ARGS="$DOMAIN_ARGS -d $d"
-    done
+DOMAIN_ARGS=""
+for d in "${DOMAINS[@]}"; do
+    DOMAIN_ARGS="$DOMAIN_ARGS -d $d"
+done
 
+# 모든 도메인이 기존 인증서에 포함되어 있는지 확인
+ALL_COVERED=true
+for d in "${DOMAINS[@]}"; do
+    if ! sudo certbot certificates 2>/dev/null | grep -q "  $d"; then
+        ALL_COVERED=false
+        break
+    fi
+done
+
+if [ "$ALL_COVERED" = true ]; then
+    echo "  모든 도메인 인증서 이미 존재 — 건너뜀"
+elif sudo certbot certificates 2>/dev/null | grep -q "$PRIMARY_DOMAIN"; then
+    # 인증서는 있지만 누락 도메인 있음 → expand
+    echo "  누락 도메인 감지 — 기존 인증서에 추가 중..."
+    sudo certbot --nginx --expand $DOMAIN_ARGS \
+        --non-interactive \
+        --agree-tos \
+        --email "$EMAIL" \
+        --redirect
+else
+    # 인증서 없음 → 신규 발급
+    echo "  신규 발급 중..."
     sudo certbot --nginx $DOMAIN_ARGS \
         --non-interactive \
         --agree-tos \
