@@ -1,6 +1,6 @@
 ## 개인 도메인 관리용 Github
-- domain : http://seogyoung.com (준비중)
-- sandbox-doman : http://sandbox.seogyoung.com
+- domain : https://seogyoung.com (준비중)
+- sandbox-doman : https://sandbox.seogyoung.com
 
 
 ---
