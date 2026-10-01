@@ -30,6 +30,7 @@ DOMAINS=(
     "sandbox.seogyoung.com"
     "odiga.sandbox.seogyoung.com"
     "odiga-server.sandbox.seogyoung.com"
+    "career.sandbox.seogyoung.com"
 )
 
 # ────────────────────────────────────────
