@@ -22,15 +22,33 @@ else
 fi
 
 # conf 동기화
-# SSL 인증서가 이미 발급된 경우 certbot이 수정한 conf를 덮어쓰지 않음
-if [ -d "/etc/letsencrypt/live" ] && sudo ls /etc/letsencrypt/live/ 2>/dev/null | grep -q .; then
-    echo "[2/4] SSL 인증서 감지됨 — conf 동기화 건너뜀 (ssl_setup.sh가 관리)"
-    echo "      nginx conf 변경이 필요하면 /etc/nginx/conf.d/ 를 직접 수정하세요."
-else
-    echo "[2/4] conf 동기화: $CONF_SRC → $CONF_DST"
-    sudo rsync -av --delete "$CONF_SRC/" "$CONF_DST/"
-    sudo mkdir -p "$HTML_DST"
-    sudo rsync -av --delete "$HTML_SRC/" "$HTML_DST/"
+#
+# certbot --nginx 는 /etc/nginx/conf.d/ 의 conf 를 직접 수정한다(443 블록·리다이렉트 추가).
+# 따라서 repo 로 "기존" conf 를 덮으면 certbot 이 만든 HTTPS 설정이 날아간다.
+# → repo 에 있고 서버엔 없는 "새" conf 만 배포하고, 기존 conf 는 건드리지 않는다.
+#   (새 도메인 추가가 기존 도메인 설정을 깨지 않도록. 기존 conf 수정이 필요하면
+#    /etc/nginx/conf.d/ 를 직접 편집 후 reload.)
+echo "[2/4] conf 동기화 (새 파일만 추가, 기존 certbot 관리 conf 는 보존)"
+sudo mkdir -p "$CONF_DST" "$HTML_DST"
+
+new_confs=0
+for src in "$CONF_SRC"/*.conf; do
+    [ -e "$src" ] || continue
+    name="$(basename "$src")"
+    if [ -e "$CONF_DST/$name" ]; then
+        echo "  = $name 이미 존재 — 건너뜀 (수정 필요 시 직접 편집 후 reload)"
+    else
+        sudo cp "$src" "$CONF_DST/$name"
+        echo "  + $name 배포됨"
+        new_confs=$((new_confs + 1))
+    fi
+done
+
+# html 은 repo 전용 정적 콘텐츠라 그대로 동기화한다(certbot 이 건드리지 않음).
+sudo rsync -a "$HTML_SRC/" "$HTML_DST/"
+
+if [ "$new_confs" -gt 0 ]; then
+    echo "  → 새 conf $new_confs 개 배포됨. 새 도메인이면 ssl_setup.sh 로 인증서(443)를 발급하세요."
 fi
 
 # 설정 검증
